@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#66c8f4">
+  <meta name="description" content="Интерактивная речевая игра для ребёнка: учимся говорить «на» и «дай» вместе с Матвеем и Бураном">
+  <title>Матвей и Буран — учимся говорить «на» и «дай»</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <section class="game-shell" aria-label="Игра Матвей и Буран">
+      <div class="stage" id="stage">
+        <div class="world" aria-hidden="true">
+          <div class="sun"></div>
+          <div class="cloud cloud--one"></div>
+          <div class="cloud cloud--two"></div>
+          <div class="cloud cloud--three"></div>
+          <div class="hill hill--back"></div>
+          <div class="hill hill--front"></div>
+          <div class="tree tree--left"><span></span></div>
+          <div class="tree tree--right"><span></span></div>
+          <div class="flowers"></div>
+        </div>
+
+        <header class="topbar">
+          <button class="lesson-pill" id="menuButton" type="button" aria-label="Открыть меню историй">
+            <span id="lessonIcon">🍎</span>
+            <span><small id="lessonNumber">История</small><strong id="lessonTitle">Матвей и Буран</strong></span>
+          </button>
+
+          <div class="progress" id="progress" aria-label="Прогресс истории"></div>
+
+          <div class="topbar__actions">
+            <button class="round-button" id="repeatButton" type="button" aria-label="Повторить фразу" title="Повторить фразу">🔊</button>
+            <button class="round-button" id="fullscreenButton" type="button" aria-label="На весь экран" title="На весь экран">⛶</button>
+            <button class="round-button" id="restartButton" type="button" aria-label="Начать историю сначала" title="Сначала">↻</button>
+          </div>
+        </header>
+
+        <div class="prompt" id="prompt" role="status" aria-live="polite">Выбери историю</div>
+
+        <div class="speech speech--matvey" id="matveySpeech" hidden>
+          <span class="speech__name">Матвей</span>
+          <p id="matveySpeechText"></p>
+        </div>
+
+        <div class="speech speech--buran" id="buranSpeech" hidden>
+          <span class="speech__name">Буран</span>
+          <p id="buranSpeechText"></p>
+        </div>
+
+        <div class="character matvey" id="matvey" aria-label="Матвей">
+          <img src="assets/matvey.png" alt="Всадник Матвей" draggable="false">
+        </div>
+
+        <div class="character buran" id="buran" aria-label="Конь Буран">
+          <img src="assets/buran.png" alt="Конь Буран" draggable="false">
+          <div class="target target--mouth" id="mouthTarget"></div>
+          <div class="target target--body" id="bodyTarget"></div>
+        </div>
+
+        <div class="child-zone" id="childZone" aria-hidden="true">
+          <span>ТВОЯ РУКА</span>
+        </div>
+
+        <div class="object-layer" id="objectLayer"></div>
+
+        <section class="task-panel" id="taskPanel" hidden>
+          <p class="task-panel__eyebrow" id="taskEyebrow">Задание</p>
+          <h2 id="taskTitle">Что нужно сказать?</h2>
+          <p id="taskText"></p>
+
+          <div class="choice-actions" id="choiceActions" hidden>
+            <button class="word-button word-button--give" type="button" data-answer="НА">НА</button>
+            <button class="word-button word-button--ask" type="button" data-answer="ДАЙ">ДАЙ</button>
+          </div>
+
+          <div class="say-actions" id="sayActions" hidden>
+            <div class="say-phrase" id="sayPhrase">ДАЙ ЯБЛОКО</div>
+            <button class="mic-button" id="micButton" type="button">
+              <span class="mic-button__icon">🎤</span>
+              <span class="mic-button__text">Нажми и скажи</span>
+              <span class="mic-meter"><i id="micMeter"></i></span>
+            </button>
+            <button class="said-button" id="saidButton" type="button">Я сказал!</button>
+            <small id="micHint">Игра слушает только громкость голоса, а не записывает речь</small>
+          </div>
+
+          <div class="select-actions" id="selectActions" hidden></div>
+
+          <div class="brush-progress" id="brushProgress" hidden>
+            <span>Чистим Бурана</span>
+            <div><i id="brushProgressFill"></i></div>
+          </div>
+        </section>
+
+        <section class="praise-card" id="praiseCard" hidden>
+          <div class="praise-card__stars" aria-hidden="true">⭐ ⭐ ⭐</div>
+          <strong id="praiseTitle">Молодец!</strong>
+          <p id="praiseText"></p>
+          <button class="primary-button" id="continueButton" type="button">Дальше</button>
+        </section>
+
+        <section class="menu-card" id="menuCard">
+          <p class="menu-card__eyebrow">Речевая игра</p>
+          <h1>Матвей и Буран</h1>
+          <p class="menu-card__lead">Учимся просить словом <b>«ДАЙ»</b> и отдавать словом <b>«НА»</b>.</p>
+
+          <div class="lesson-grid" id="lessonGrid"></div>
+
+          <button class="primary-button primary-button--large" id="playAllButton" type="button">▶ Играть по порядку</button>
+          <small>Можно выбрать одну историю или пройти все подряд</small>
+        </section>
+
+        <section class="final-card" id="finalCard" hidden>
+          <div class="final-card__medal" aria-hidden="true">🏅</div>
+          <p>Все истории пройдены</p>
+          <h2>Ты отлично справился!</h2>
+          <div class="rule-cards">
+            <div><strong>НА</strong><span>когда отдаём</span></div>
+            <div><strong>ДАЙ</strong><span>когда просим</span></div>
+          </div>
+          <button class="primary-button" id="backToMenuButton" type="button">Выбрать историю</button>
+        </section>
+
+        <div class="rotate-card" id="rotateCard">
+          <div aria-hidden="true">📱 ↻</div>
+          <strong>Поверни телефон</strong>
+          <span>В горизонтальном режиме играть удобнее</span>
+          <button id="continuePortraitButton" type="button">Продолжить так</button>
+        </div>
+
+        <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <p class="page-note">Для голосовых заданий на GitHub Pages можно разрешить доступ к микрофону. При отказе работает кнопка «Я сказал!».</p>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>

@@ -678,6 +678,29 @@ button:focus-visible { outline: 5px solid rgba(255, 216, 57, .9); outline-offset
     padding: 10px 13px 12px;
   }
 
+  /* Поднимаем предметы выше, чтобы они не прятались за нижней плашкой с заданием */
+  .game-object.slot-matvey {
+    top: 58%;
+  }
+
+  .game-object.slot-child {
+    top: 60%;
+  }
+
+  .game-object.slot-center {
+    top: 42%;
+  }
+
+  .game-object.slot-buran {
+    top: 47%;
+  }
+
+  .game-object.slot-tray-1,
+  .game-object.slot-tray-2,
+  .game-object.slot-tray-3 {
+    top: 60%;
+  }
+
   .choice-actions {
     gap: 10px;
   }

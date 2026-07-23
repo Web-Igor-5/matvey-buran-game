@@ -56,6 +56,58 @@
     bag: { label: "СУМКА", src: "assets/bag.svg" }
   };
 
+  const VOICE_FILES = {
+    matvey: {
+      "привет! у меня есть яблоко": "assets/audio/matvey/01_hello_apple.wav",
+      "на, яблоко": "assets/audio/matvey/02_here_apple.wav",
+      "на, буран, яблоко": "assets/audio/matvey/03_here_buran_apple.wav",
+      "смотри, у меня есть морковка": "assets/audio/matvey/04_have_carrot.wav",
+      "на, морковка": "assets/audio/matvey/05_here_carrot.wav",
+      "бурану нужно почистить шерсть. щётка у меня": "assets/audio/matvey/06_brush_intro.wav",
+      "на, щётка": "assets/audio/matvey/07_here_brush.wav",
+      "спасибо": "assets/audio/matvey/08_thank_you.wav",
+      "давай играть! мяч сейчас у меня": "assets/audio/matvey/09_ball_intro.wav",
+      "на, мяч": "assets/audio/matvey/10_here_ball.wav",
+      "на, буран, мяч": "assets/audio/matvey/11_here_buran_ball.wav",
+      "нам пора в дорогу. помоги собрать сумку": "assets/audio/matvey/12_trip_intro.wav",
+      "почти! когда отдаём, говорим: на": "assets/audio/matvey/13_wrong_give.wav",
+      "почти! когда просим, говорим: дай": "assets/audio/matvey/14_wrong_ask.wav",
+      "ты большой молодец! на — когда отдаём. дай — когда просим": "assets/audio/matvey/15_final.wav",
+      "дай яблоко": "assets/audio/matvey/16_say_give_apple.wav",
+      "на, буран, морковку": "assets/audio/matvey/17_say_here_carrot.wav",
+      "на, буран, воду": "assets/audio/matvey/18_say_here_water.wav",
+      "дай щётку": "assets/audio/matvey/19_say_give_brush.wav",
+      "дай мяч": "assets/audio/matvey/20_say_give_ball.wav",
+      "на, щётку": "assets/audio/matvey/21_say_here_brush.wav",
+      "на": "assets/audio/matvey/22_word_na.wav",
+      "дай": "assets/audio/matvey/23_word_dai.wav"
+    },
+    buran: {
+      "я тоже хочу яблоко": "assets/audio/buran/01_want_apple.wav",
+      "спасибо! м-м-м, вкусно": "assets/audio/buran/02_apple_tasty.wav",
+      "я люблю морковку": "assets/audio/buran/03_love_carrot.wav",
+      "спасибо! хрум-хрум": "assets/audio/buran/04_carrot_crunch.wav",
+      "я хочу пить. у меня нет воды": "assets/audio/buran/05_want_water.wav",
+      "спасибо! я пью воду": "assets/audio/buran/06_drink_water.wav",
+      "как приятно! я стал чистым": "assets/audio/buran/07_clean.wav",
+      "лови обратно": "assets/audio/buran/08_throw_ball.wav",
+      "на, мяч": "assets/audio/buran/09_here_ball.wav",
+      "спасибо! теперь можно ехать": "assets/audio/buran/10_ready_to_go.wav"
+    }
+  };
+
+  function normalizeSpeechText(text) {
+    return String(text || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/[.!?…]+$/g, "")
+      .toLocaleLowerCase("ru-RU");
+  }
+
+  function getVoiceFile(actor, text) {
+    return VOICE_FILES[actor]?.[normalizeSpeechText(text)] || null;
+  }
+
   const lessons = [
     {
       id: "apple",
@@ -152,6 +204,7 @@
   let runToken = 0;
   let currentPhrase = "";
   let currentActor = "matvey";
+  let currentVoiceAudio = null;
   let pendingContinue = null;
   let currentTaskCleanup = null;
   let audioContext = null;
@@ -187,13 +240,58 @@
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  function speak(text, actor = "matvey") {
+  function stopVoice() {
+    if (currentVoiceAudio) {
+      currentVoiceAudio.pause();
+      currentVoiceAudio.currentTime = 0;
+      currentVoiceAudio = null;
+    }
+    synth?.cancel();
+  }
+
+  function playRecordedVoice(path) {
+    return new Promise(resolve => {
+      const audio = new Audio(path);
+      currentVoiceAudio = audio;
+      audio.preload = "auto";
+
+      let finished = false;
+      const finish = success => {
+        if (finished) return;
+        finished = true;
+        if (currentVoiceAudio === audio) currentVoiceAudio = null;
+        resolve(success);
+      };
+
+      audio.addEventListener("ended", () => finish(true), { once: true });
+      audio.addEventListener("error", () => finish(false), { once: true });
+
+      const playResult = audio.play();
+      if (playResult?.catch) {
+        playResult.catch(() => finish(false));
+      }
+
+      setTimeout(() => finish(false), 20000);
+    });
+  }
+
+  async function speak(text, actor = "matvey") {
     currentPhrase = text || "";
     currentActor = actor;
-    if (!speechSupported || !text) return Promise.resolve();
+    if (!text) return;
 
-    synth.cancel();
-    return new Promise(resolve => {
+    stopVoice();
+
+    const recordedFile = getVoiceFile(actor, text);
+    if (recordedFile) {
+      const played = await playRecordedVoice(recordedFile);
+      if (played) return;
+    }
+
+    // Запасной вариант для динамических фраз, которых нет среди WAV-файлов.
+    if (!speechSupported) return;
+
+    await new Promise(resolve => {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "ru-RU";
       utterance.voice = chooseRussianMaleVoice();
@@ -344,7 +442,7 @@
 
   function resetWorld() {
     runToken++;
-    synth?.cancel();
+    stopVoice();
     stopMic();
     currentTaskCleanup?.();
     currentTaskCleanup = null;
@@ -514,6 +612,7 @@
       }
 
       choiceActions.removeEventListener("click", onChoice);
+      await say("matvey", step.correct === "НА" ? "На." : "Дай.");
       await applyStepEffects(step);
       await showPraise("Правильно!", step.praise || `Ты выбрал слово «${step.correct.toLowerCase()}».`);
       nextStep();
@@ -528,6 +627,8 @@
     showTask({ eyebrow: "Скажи", title: step.title, text: step.text });
     sayPhrase.textContent = step.phrase.toUpperCase();
     sayActions.hidden = false;
+    showSpeech("matvey", step.phrase);
+    speak(step.phrase, "matvey");
     micHint.textContent = "Игра слушает только громкость голоса, а не распознаёт слова";
     micButton.querySelector(".mic-button__text").textContent = "Нажми и скажи";
 
@@ -565,7 +666,7 @@
   }
 
   async function listenForVoice() {
-    synth?.cancel();
+    stopVoice();
     micButton.classList.add("is-listening");
     micButton.querySelector(".mic-button__text").textContent = "Говори…";
     micHint.textContent = "Скажи фразу громко и спокойно";
@@ -940,7 +1041,7 @@
   continuePortraitButton.addEventListener("click", () => stage.classList.add("portrait-dismissed"));
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
-      synth?.cancel();
+      stopVoice();
       stopMic();
     }
   });
